@@ -118,6 +118,7 @@ public class Interfaz extends JFrame{
         fork.setForeground(Color.BLACK); 
         add(fork);
         
+        
                 // Acción para el botón "Fork Join"
         fork.addActionListener(new ActionListener() {
             @Override

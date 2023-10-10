@@ -7,6 +7,7 @@ import java.util.concurrent.ForkJoinPool;
 
 public class ForkJoin extends RecursiveAction {
     
+    
     //Instancias
     private int[] arreglo;
     private int izq; 
