@@ -3,10 +3,18 @@ package Clases;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -18,17 +26,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-
-
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Interfaz extends JFrame{
     //Intancias para mostrar
     private JTextArea originalText;
-    private JTextArea acomodoText;
+    private JTextArea sumaText;
     private JTextField numero; //Tamaño del arreglo
-    private float[] numerosArchivo;
     private JButton executor;
     private JLabel resultLabel;
     private ExecutorService executorService;
@@ -40,22 +45,6 @@ public class Interfaz extends JFrame{
         setSize(800, 500);
         setLayout(null);
         this.setLocationRelativeTo(null);
-
-        // Inicializa el ExecutorService con un ThreadPool de 4 hilos
-        executorService = Executors.newFixedThreadPool(4);
-
-        // Inicializa el Callable para calcular la suma
-        sumaCallable = new Callable<Float>() {
-            @Override
-            public Float call() {
-                // Realiza el cálculo de la suma en paralelo aquí
-                float suma = 0;
-                for (float numero : numeros) {
-                    suma += numero;
-                }
-                return suma;
-            }
-        };
       
         JLabel titulo;
         titulo = new JLabel("Proyecto Segundo Parcial");
@@ -77,10 +66,10 @@ public class Interfaz extends JFrame{
         add(ScrollPane);
         
         //Text Area de la Suma de elementos
-        acomodoText = new JTextArea("Suma de Elementos");
-        acomodoText.setBounds(80, 180, 350, 50);
-        add(acomodoText);
-        JScrollPane ScrollPane2 = new JScrollPane(acomodoText);
+        sumaText = new JTextArea("Suma de Elementos");
+        sumaText.setBounds(80, 180, 350, 50);
+        add(sumaText);
+        JScrollPane ScrollPane2 = new JScrollPane(sumaText);
         ScrollPane2.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         ScrollPane2.setBounds(80, 180, 350, 50);
         add(ScrollPane2);
@@ -112,6 +101,27 @@ public class Interfaz extends JFrame{
         archivo.setBackground(Color.WHITE); 
         archivo.setForeground(Color.BLACK);  
         add(archivo); 
+        archivo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos de texto (.txt)", "txt"));
+
+                int seleccion = fileChooser.showOpenDialog(null);
+                if (seleccion == JFileChooser.APPROVE_OPTION) {
+                    File archivoSeleccionado = fileChooser.getSelectedFile();
+
+                    try {
+                        cargarNumerosDesdeArchivo(archivoSeleccionado);
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
+               
+        
+        //          Merge
                 
         JLabel tiempoMerge;
         tiempoMerge = new JLabel("Tiempo:");
@@ -129,31 +139,29 @@ public class Interfaz extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (numeros != null && numeros.length > 0) {
-                    Merge mergeAlgorithm = new Merge();
-
+                    Merge merge = new Merge(); //Objeto de la clase merge                    
                     long tiempoInicio = System.nanoTime(); // Registra el tiempo de inicio
-                    float sumaTotal = mergeAlgorithm.mergeSort(numeros, 0, numeros.length - 1); // Realiza la suma y obtiene el resultado
-                    long tiempoFin = System.nanoTime(); // Registra el tiempo de finalización
-                    long tiempoTotal = tiempoFin - tiempoInicio; // Calcula el tiempo de ejecución
-                    
-                    mostrarNumerosAcomodados();
+                    float sumaTotal = merge.mergeSort(numeros, 0, numeros.length - 1); // vairbale suma total de tipoFloat para hacer el calculo
+                    long tiempoFin = System.nanoTime();
+                    long tiempoTotal = tiempoFin - tiempoInicio;                   
+                    mostrarSumaNumeros(); //Mostrar la suma
 
-                    // Formatea el tiempo en nanosegundos como desees
+                    //Añadir una coma cada tres dijistos
                     DecimalFormat df = new DecimalFormat("#,###");
-                    String tiempoFormateado = df.format(tiempoTotal);
-
-                    tiempoMerge.setText("Tiempo: " + tiempoFormateado + " ns");
+                    String tiempoDecimal = df.format(tiempoTotal);
+                    tiempoMerge.setText("Tiempo: " + tiempoDecimal + " ns");
                 }
             }
         });
 
+        //          ForkJoin
    
         JLabel tiempoJoin;
         tiempoJoin = new JLabel("Tiempo:");
         tiempoJoin.setForeground(colorTexto2);
         tiempoJoin.setBounds(270, 280, 150, 50);
         add(tiempoJoin);
-                JButton fork = new JButton("Fork Join");
+        JButton fork = new JButton("Fork Join");
         fork.setBounds(270, 320, 130, 30);
         fork.setBackground(Color.WHITE);
         fork.setForeground(Color.BLACK); 
@@ -162,25 +170,47 @@ public class Interfaz extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (numeros != null && numeros.length > 0) {
+                   //// Llamamos al método estático sumarElementosConForkJoin
                    ResultadoSuma resultado = ForkJoin.sumarElementosConForkJoin(numeros);
-                   float suma = resultado.getSuma();
-                   long tiempoTotal = resultado.getTiempoTotal();
-                    
-                   mostrarNumerosAcomodados();
+                   float suma = resultado.getSuma();// Obtenemos la suma total 
+                   long tiempoTotal = resultado.getTiempoTotal();//// Obtenemos el tiempo total
+                   mostrarSumaNumeros();
                    // Formatea el tiempo en nanosegundos como deseas
                    DecimalFormat df = new DecimalFormat("#,###");
-                   String tiempoFormateado = df.format(tiempoTotal);
-                   tiempoJoin.setText("Tiempo: " + tiempoFormateado + " ns");
+                   String tiempoDecimal = df.format(tiempoTotal);
+                   tiempoJoin.setText("Tiempo: " + tiempoDecimal + " ns");
                 }
             }
         });
+        
+        
+        //      Executor
         
         JLabel tiempoExecutor;
         tiempoExecutor = new JLabel("Tiempo:");
         tiempoExecutor.setForeground(colorTexto2);
         tiempoExecutor.setBounds(480,280,200,50);
         add(tiempoExecutor);
+        
+        
+        
+        // Inicializa el ExecutorService con un ThreadPool de 4 hilos
+        executorService = Executors.newFixedThreadPool(4);
+
+        // Inicializa el Callable para calcular la suma
+        sumaCallable = new Callable<Float>() {
+            @Override
+            public Float call() {
+                // Realiza el cálculo de la suma en paralelo aquí
+                float suma = 0;
+                for (float numero : numeros) {
+                    suma += numero;
+                }
+                return suma;
+            }
+        };
                 
+        //Boton y metodo Executer
         JButton executer = new JButton("Executer");
         executer.setBounds(480, 320, 130, 30);
         executer.setBackground(Color.WHITE);
@@ -190,17 +220,18 @@ public class Interfaz extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (numeros != null && numeros.length > 0) {
-                    long tiempoInicio = System.nanoTime(); // Registra el tiempo de inicio
+                    
+                    long tiempoInicio = System.nanoTime(); 
 
-                    // Ejecuta el cálculo de la suma en paralelo utilizando el ExecutorService
-                    Future<Float> resultado = executorService.submit(sumaCallable);
+                    ExecutorTask sumCalculator = new ExecutorTask(numeros, executorService);
+                    Future<Float> resultado = sumCalculator.calcularSumaEnParalelo();
 
                     try {
                         float sumaTotal = resultado.get(); // Obtiene el resultado de la suma
                         long tiempoFin = System.nanoTime(); // Registra el tiempo de finalización
                         long tiempoTotal = tiempoFin - tiempoInicio; // Calcula el tiempo de ejecución
 
-                        mostrarNumerosAcomodados();
+                        mostrarSumaNumeros();
 
                         // Formatea el tiempo en nanosegundos como desees
                         DecimalFormat df = new DecimalFormat("#,###");
@@ -224,7 +255,7 @@ public class Interfaz extends JFrame{
         limpiar.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                acomodoText.setText("");
+                sumaText.setText("");
                 numero.setText("");
                 originalText.setText("");
                 tiempoMerge.setText("Tiempo: ");
@@ -235,13 +266,15 @@ public class Interfaz extends JFrame{
                
         getContentPane().setBackground(Color.decode("#000080"));
         setVisible(true);
+        
     }//Interfaz
+    
+    
     
     
         //Metodos Para Generar y Mostrar
     
     private float[] numeros;  // Arreglo para almacenar números aleatorios
-
     
     // Genera tamanio numeros aleatorios y los guarda en el arreglo
     private void generarNumerosAleatorios(int tamaño) {
@@ -265,14 +298,51 @@ public class Interfaz extends JFrame{
     }//mostrarNumerosOriginales
 
     // Construye una cadena de texto con los números del 
-//    //arreglo numeros y los muestra en acomodoText
-    private void mostrarNumerosAcomodados() {
-        float suma = 0;
-        for (float numero : numeros) {
-            suma += numero;
+    //arreglo numeros y los muestra en acomodoText
+        private void mostrarSumaNumeros() {
+            float suma = 0;
+            for (float numero : numeros) {
+                suma += numero;
+            }
+
+            DecimalFormat df = new DecimalFormat("#,###.###");
+            String sumaFormateada = df.format(suma);
+
+            sumaText.setText("Suma de números: " + sumaFormateada);
+        }  
+
+    private void cargarNumerosDesdeArchivo(File archivo) throws IOException {
+        List<Float> numerosList = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                String[] partes = linea.split(" ");
+                for (String parte : partes) {
+                    try {
+                        // Establece el Locale para asegurarte de que los números se interpreten correctamente
+                        Locale usLocale = new Locale("en", "US");
+                        NumberFormat format = NumberFormat.getInstance(usLocale);
+                        Number number = format.parse(parte);
+                        float numero = number.floatValue();
+                        numerosList.add(numero);
+                    } catch (ParseException e) {
+                        // Ignora partes que no sean números flotantes
+                    }
+                }
+            }
         }
-        acomodoText.setText("Suma de números acomodados: " + suma);
+    
+    if (!numerosList.isEmpty()) {
+        numeros = new float[numerosList.size()];
+        for (int i = 0; i < numerosList.size(); i++) {
+            numeros[i] = numerosList.get(i);
+        }
+        
+        mostrarNumerosOriginales();
+    } else {
+        originalText.setText("No se encontraron números en el archivo.");
     }
-     
+}
    
 }//class

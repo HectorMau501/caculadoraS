@@ -1,36 +1,30 @@
 
 package Clases;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-
-
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-import java.text.DecimalFormat;
-import javax.swing.JTextArea;
-
 import java.util.concurrent.Callable;
 
-public class ExecutorTask implements Callable<Float> {
-    private float[] numbers;
+public class ExecutorTask {
+    private float[] numeros;
+    private ExecutorService executorService;
 
-    public ExecutorTask(float[] numbers) {
-        this.numbers = numbers;
+    public ExecutorTask(float[] numeros, ExecutorService executorService) {
+        this.numeros = numeros;
+        this.executorService = executorService;
     }
 
-    @Override
-    public Float call() throws Exception {
-        float sum = 0;
-        for (float number : numbers) {
-            sum += number;
-        }
-        return sum;
+    public Future<Float> calcularSumaEnParalelo() {
+        return executorService.submit(new Callable<Float>() {
+            @Override
+            public Float call() {
+                float suma = 0;
+                for (float numero : numeros) {
+                    suma += numero;
+                }
+                return suma;
+            }
+        });
     }
 }
 
